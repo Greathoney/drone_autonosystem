@@ -1,6 +1,7 @@
 close all; clear; clc
 
-addpath('/home/great/catkin_ws/src/mavros/matlab_msg_gen_ros1/glnxa64/install/m')
+addpath('catkin_ws/src/mavros/matlab_msg_gen_ros1/glnxa64/install/m')
+addpath('gui')
 % rosinit
 gui();
 %%
