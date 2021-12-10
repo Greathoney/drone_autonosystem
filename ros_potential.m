@@ -3,7 +3,6 @@ close all; clear; clc
 [tmp, name] = dos("echo $USER");
 name = erase(name,newline);
 catkin_dir = '/home/%s/catkin_ws/src/mavros/matlab_msg_gen_ros1/glnxa64/install/m';
-sprintf(catkin_dir, name)
 
 addpath(sprintf(catkin_dir, name))
 addpath('gui')
