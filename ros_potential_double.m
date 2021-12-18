@@ -237,12 +237,14 @@ r_rho=5; % infludence of the obstacle
 eps=0.5;
 dphi_r=[0;0];
 dt=1/desiredRate;
-a=0.3; % velocity limits
-k=0.1*1000; % potential gain
+a=3; % velocity limits
+k=0.1*10; % potential gain
 
 dphi_a=-(x-xf);
 n=2;
 r_goal=norm(x-xf);
+
+affected_flag = 0;
 
 num_obs = size(obs,2);
 fprintf("num of obs: %d\n", num_obs);
@@ -254,20 +256,24 @@ for i = 1:num_obs
     r_obs=norm(x-obs(:,i));
     if r_obs<r_rho
         fprintf(" Affected\n");
-        dphi_r_element = k*(1/(r_obs-eps)-1/r_rho)*(1/(r_obs^3))*r_goal^n*(x-obs(:,i)) ...
-            -k/2*n*(1/(r_obs-eps)-1/r_rho)^2*r_goal^(n-1)*(x-xf);
+        affected_flag = 1;
+        dphi_r_element = k*(1/(r_obs-eps)-1/r_rho)*(1/(r_obs))*r_goal^n*(x-obs(:,i)) ...
+            -k/2*n*(1/(r_obs-eps)-1/r_rho)*r_goal^(n-1)*(x-xf);
         dphi_r=dphi_r + dphi_r_element;
-        dphi_r_element
     else
         fprintf(" Not Affected\n");
     end  
 end
 
-
-dphi_p=dphi_a+dphi_r;
-% dphi_p=a*dphi_p/(norm(dphi_p));
+if affected_flag
+dphi_p=dphi_r;
+dphi_p=a*dphi_p/(norm(dphi_p))
 
 vd=dphi_p;
 xd=xd_pre+dphi_p*dt;
+else
+vd=[0;0];
+xd=[0;0];
+end
 
 end
