@@ -27,7 +27,7 @@ pause(1);
 K=([565.6008952774197, 0.0, 320.5; 0.0, 565.6008952774197, 240.5; 0.0, 0.0, 1.0]);
 
 
-for i=1:100
+for i=1:80
     setmsg.Pose.Position.X = 0;
     setmsg.Pose.Position.Y = 0;
     setmsg.Pose.Position.Z = 1;
@@ -61,7 +61,7 @@ for i=1:100
 end
 
 
-xf=[0;0];
+xf=[1;0];
 
 xfz=1;
 
@@ -159,12 +159,12 @@ for i = 1:desiredRate*loopTime
     
     [groundPtsIdx,nonGroundPtCloud,groundPtCloud] = segmentGroundSMRF(ptCloud_d);
     ptCloud_obs = rmmissing(nonGroundPtCloud.Location);
-
+    
     
     minDistance=0.5;
     minPoints=10;
     [labels,numClusters] = pcsegdist(nonGroundPtCloud,minDistance,'NumClusterPoints',minPoints);
-
+    
     obs = [];
     if numClusters~=0
         idxValidPoints = find(labels);
@@ -181,9 +181,9 @@ for i = 1:desiredRate*loopTime
                 obs(1,k)=mean(temp.Location(:,1));
                 obs(2,k)=mean(temp.Location(:,2));
             end
-        end          
+        end
     end
-
+    
     
     
     % potential field
@@ -196,12 +196,12 @@ for i = 1:desiredRate*loopTime
     
     
     xd(:,i)=goal;
-    fprintf("Goal %d %d\n", goal(1), goal(2)); 
+    fprintf("Goal %d %d\n", goal(1), goal(2));
     
     plot3(X,Y,Z,'LineWidth',2,'Color', 'b','parent',handles.axes1); hold( handles.axes1, 'on' )
     plot3(xd(1,1:i),xd(2,1:i),xfz*ones(size(xd(2,1:i))),'LineWidth',2,'Color', 'r','parent',handles.axes1);
     plot3(ptCloud_obs(:,1),ptCloud_obs(:,2),ptCloud_obs(:,3),'ok','MarkerSize',1,'parent',handles.axes1);
-%         plot3(ptCloud_d.Location(:,1),ptCloud_d.Location(:,2),ptCloud_d.Location(:,3),'ok','MarkerSize',1,'parent',handles.axes1);
+    %         plot3(ptCloud_d.Location(:,1),ptCloud_d.Location(:,2),ptCloud_d.Location(:,3),'ok','MarkerSize',1,'parent',handles.axes1);
     
     hold( handles.axes1, 'off' );    grid(handles.axes1,'on');
     axis(handles.axes1,[-2 20 -4 4 -1 3]);
@@ -233,11 +233,11 @@ rosshutdown
 
 function [xd,vd]=potential(x,xd_pre,xf,obs)
 global desiredRate ;
-r_rho=5; % infludence of the obstacle
+r_rho=3; % infludence of the obstacle
 eps=0.5;
 dphi_r=[0;0];
 dt=1/desiredRate;
-a=3; % velocity limits
+a=4; % velocity limits
 k=0.1*10; % potential gain
 
 dphi_a=-(x-xf);
@@ -251,29 +251,31 @@ fprintf("num of obs: %d\n", num_obs);
 
 for i = 1:num_obs
     fprintf("Obj%d X: %d, Y: %d",i, obs(1,i), obs(2,i));
-%     fprintf("Obj%d X: %d, Y: %d\n",i, dphi_r_element(1), dphi_r_element(2));
+    %     fprintf("Obj%d X: %d, Y: %d\n",i, dphi_r_element(1), dphi_r_element(2));
     
-    r_obs=norm(x-obs(:,i));
+    %     r_obs=norm(x-obs(:,i));
+    r_obs=abs(x(1)-obs(1,i));
     if r_obs<r_rho
         fprintf(" Affected\n");
         affected_flag = 1;
-        dphi_r_element = k*(1/(r_obs-eps)-1/r_rho)*(1/(r_obs))*r_goal^n*(x-obs(:,i)) ...
-            -k/2*n*(1/(r_obs-eps)-1/r_rho)*r_goal^(n-1)*(x-xf);
+        dphi_r_element = k*(1/(r_obs-eps)-1/r_rho)*(1/(r_obs^3))*r_goal^n*(x-obs(:,i)) ...
+            -k/2*n*(1/(r_obs-eps)-1/r_rho)^2*r_goal^(n-1)*(x-xf);
+        dphi_r_element = dphi_r_element/(norm(dphi_r_element))
         dphi_r=dphi_r + dphi_r_element;
     else
         fprintf(" Not Affected\n");
-    end  
+    end
 end
 
 if affected_flag
-dphi_p=dphi_r;
-dphi_p=a*dphi_p/(norm(dphi_p))
-
-vd=dphi_p;
-xd=xd_pre+dphi_p*dt;
+    dphi_p=dphi_r;
+    dphi_p=a*dphi_p/(norm(dphi_p))
+    
+    vd=dphi_p;
+    xd=xd_pre+dphi_p*dt;
 else
-vd=[0;0];
-xd=[0;0];
+    vd=[0;0];
+    xd=[0;0];
 end
 
 end
